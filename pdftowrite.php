@@ -1,27 +1,35 @@
-#!/bin/sh 
-
 <?php 
-$INFILE="spectral_density.pdf";
-$SVGFile="thesisdefense.svg";
+$options = getopt("i:",array("inputpdf"));
+
+
+if (isset($options['i'])) {
+        $INFILE = $options['i'];
+} else {
+	exit( "You should provide an input pdf file...");
+};
+
+$SVGFile="temp1.svg";
 $OUTFILE="compress.zlib://test.svgz";
+$OUTFILE="output.svg";
 $TEMPFILE="/tmp/temp";
-$PDFTOSVG="/usr/bin/pdftocairo -svg ";
+$PDFTOSVG="/usr/bin/pdftocairo -svg -expand -paperw 930 -paperh 1317 ";
 $SED="/usr/bin/sed";
-/*
-$PRE='<svg class="write-page" color-interpolation="linearRGB" x="10" y="0" width="1240px" height="1755px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <g class="write-content write-v3" width="1240" height="1755" xruling="0" yruling="0" marginLeft="0" papercolor="#FFFFFF" rulecolor="#9F0000FF">
+//Create the svg file using pdftocairo
+//
+
+exec($PDFTOSVG.$INFILE." ".$SVGFile);
+
+$width=930;
+$height=1317;
+
+$PRE='<svg class="write-page" color-interpolation="linearRGB" x="10" y="0" width="'.$width.'" height="'.$height.'" viewBox="0 0 '.$width.' '.$height.'" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g class="write-content write-v3" width="'.$width.'" height="'.$height.'" xruling="0" yruling="0" marginLeft="0" papercolor="#FFFFFF" rulecolor="#9F0000FF">
   <g class="ruleline write-std-ruling write-scale-down" fill="none" stroke="#0000FF" stroke-opacity="0.624" stroke-width="1" shape-rendering="crispEdges" vector-effect="non-scaling-stroke">
-  <rect class="pagerect" fill="#FFFFFF" stroke="none" x="0" y="0" width="1240" height="1755" />
-  </g>';
- */
-$PRE='<svg class="write-page" color-interpolation="linearRGB" x="10" y="0" width="612pt" height="792pt" viewBox="0 0 612 792" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <g class="write-content write-v3" width="100%" height="100%" xruling="0" yruling="0" marginLeft="0" papercolor="#FFFFFF" rulecolor="#9F0000FF">
-  <g class="ruleline write-std-ruling write-scale-down" fill="none" stroke="#0000FF" stroke-opacity="0.624" stroke-width="1" shape-rendering="crispEdges" vector-effect="non-scaling-stroke">
-  <rect class="pagerect" fill="#FFFFFF" stroke="none" x="0" y="0" width="100%" height="100%" />
+  <rect class="pagerect" fill="#FFFFFF" stroke="none" x="0" y="0" width="'.$width.'" height="'.$height.'" />
   </g>';
 $POST='</svg>';
 $HEAD='<svg id="write-document" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink\">
-<rect id="write-doc-background" width="100%" height="100%" fill="#808080"/>';
+<rect id="write-doc-background" width="'.$width.'" height="'.$height.'" fill="#808080"/>';
 $TAIL='</svg>';
 
 //echo $HEAD > $TEMPFILE
@@ -86,6 +94,9 @@ function replaceglyphs($xmlelement, $glyphs)
 				if ($node->hasAttribute('transform')) {
 					$newnode->documentElement->setAttribute('transform',$node->attributes->getNamedItem('transform')->value);
 				};
+				$newnode->documentElement->removeAttribute('style');
+				$newnode->documentElement->setAttribute('class','write-flat-pen');
+				$newnode->documentElement->setAttribute('stroke-width','1.6');
 				$newnodeindoc = $document -> importNode($newnode->documentElement,true);
 				$node->parentNode->replaceChild($newnodeindoc,$node);
 			};
@@ -99,7 +110,7 @@ function replaceglyphs($xmlelement, $glyphs)
 $glyphs = readglyphs($SVGFile);
 
 $xml = new XMLReader();
-$xml->open("$SVGFile");
+$xml->open($SVGFile);
 
 while($xml->read() && $xml->name != 'page') 
 {
@@ -130,9 +141,9 @@ while($xml->name == 'page' )
 	unset($page);
 };
 file_put_contents($OUTFILE,$TAIL,FILE_APPEND);
-echo $count;
+
+exec('rm '.$SVGFile);
+exec('gzip '.$OUTFILE);
+exec('mv '.$OUTFILE.'.gz '.$OUTFILE.'z');
 ?>
-
-
-
 
